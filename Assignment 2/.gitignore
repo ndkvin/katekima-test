@@ -14,7 +14,6 @@ db.sqlite3
 
 # Migrations
 **/migrations/*.pyc
-**/migrations/*.py
 
 # VSCode
 .vscode/
