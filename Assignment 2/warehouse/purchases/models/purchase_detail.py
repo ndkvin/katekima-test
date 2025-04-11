@@ -7,6 +7,7 @@ class PurchaseDetail(BaseModel):
     item_code = models.ForeignKey('items.Item', on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
-
+    remaining_quantity = models.PositiveIntegerField(default=0)
+    
     def __str__(self):
         return f"{self.header_code} - {self.item_code}"

@@ -4,6 +4,7 @@ from ..models.sell_header import SellHeader
 from ..serializers.sell_detail import SellDetailSerializer
 from rest_framework import viewsets
 from items.models import Item
+from purchases.models.purchase_detail import PurchaseDetail
 
 class SellDetailByHeaderViewSet(viewsets.ViewSet):
 
@@ -32,21 +33,46 @@ class SellDetailByHeaderViewSet(viewsets.ViewSet):
 
         data = request.data.copy()
         data['header_code'] = header
+
+        item_code = data['item_code']
+        item = Item.objects.get(code=item_code, is_deleted=False)
+        quantity_to_sell = int(data['quantity'])
+
+        if item.stock < quantity_to_sell:
+            return Response({'error': 'Insufficient stock'}, status=400)
+
+        # Ambil list pembelian (FIFO)
+        purchases = PurchaseDetail.objects.filter(
+            item_code=item_code,
+            remaining_quantity__gt=0,
+            is_deleted=False,
+            header_code__date__lte=header.date
+        ).order_by('header_code__date')
+
+        quantity_left = quantity_to_sell
+        total_cost = 0
+
+        for purchase in purchases:
+            if quantity_left == 0:
+                break
+
+            take_qty = min(quantity_left, purchase.remaining_quantity)
+            total_cost += take_qty * purchase.unit_price
+
+            purchase.remaining_quantity -= take_qty
+            purchase.save()
+
+            quantity_left -= take_qty
+
         serializer = SellDetailSerializer(data=data)
+
         if serializer.is_valid():
             detail = serializer.save()
 
-            item_code = detail.item_code
-            item = Item.objects.get(code=item_code, is_deleted=False)
-
-            if item.stock < detail.quantity:
-                return Response({'error': 'Insufficient stock'}, status=400)
-            
-            # decrease the stock based on the quantity sold
             item.stock -= detail.quantity
-            # decrease the balance based on the average cost
-            item.balance -= detail.quantity * (item.balance/item.stock)
+            item.balance -= total_cost
             item.save()
 
             return Response(serializer.data, status=201)
+
         return Response(serializer.errors, status=400)

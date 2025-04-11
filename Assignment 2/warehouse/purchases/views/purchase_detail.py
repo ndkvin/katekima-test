@@ -31,9 +31,13 @@ class PurchaseDetailByHeaderViewSet(viewsets.ViewSet):
 
         data = request.data.copy()
         data['header_code'] = header
+
         serializer = PurchaseDetailSerializer(data=data)
         if serializer.is_valid():
             detail = serializer.save()
+
+            detail.remaining_quantity = data['quantity']
+            detail.save()
 
             item_code = detail.item_code
             item = Item.objects.get(code=item_code, is_deleted=False)

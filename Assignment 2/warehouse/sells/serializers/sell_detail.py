@@ -13,4 +13,4 @@ class SellDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = SellDetail
         fields = ['item_code', 'quantity', 'header_code']
-        read_only_fields = ['created_at', 'updated_at', 'is_deleted']
+        read_only_fields = ['created_at', 'updated_at', 'is_deleted', 'header_code']

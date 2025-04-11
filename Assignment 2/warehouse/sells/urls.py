@@ -13,5 +13,5 @@ purchase_detail_list = SellDetailByHeaderViewSet.as_view({
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('sell/<str:header_code>/details/', purchase_detail_list, name='purchase-detail-by-header'),
+    path('sell/<str:header_code>/details/', purchase_detail_list, name='sell-detail-by-header'),
 ]
