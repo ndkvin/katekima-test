@@ -110,14 +110,13 @@ class ReportView(APIView):
                 })
             else:
                 remaining = trx["quantity"]
-                out_total = 0
-                stock_used = [0] * len(stock_qty)
                 i = 0
 
                 while remaining > 0 and i < len(stock_qty):
                     if stock_qty[i] == 0:
                         i += 1
                         continue
+
                     used = min(remaining, stock_qty[i])
                     price = stock_price[i]
                     total = used * price
@@ -125,40 +124,33 @@ class ReportView(APIView):
                     stock_qty[i] -= used
                     stock_total[i] = stock_qty[i] * stock_price[i]
 
+                    # Jika stok habis, set price dan total ke 0
                     if stock_qty[i] == 0:
-                        stock_price[i] = 0 
+                        stock_price[i] = 0
+                        stock_total[i] = 0
 
-                    stock_used[i] += used
-                    out_total += total
+                    balance_qty -= used
+                    balance -= total
+
+                    report.append({
+                        "date": trx["date"].strftime("%d-%m-%Y"),
+                        "description": trx["description"],
+                        "code": trx["code"],
+                        "in_qty": 0,
+                        "in_price": 0,
+                        "in_total": 0,
+                        "out_qty": used,
+                        "out_price": price,
+                        "out_total": total,
+                        "stock_qty": stock_qty.copy(),
+                        "stock_price": stock_price.copy(),
+                        "stock_total": stock_total.copy(),
+                        "balance_qty": balance_qty,
+                        "balance": balance,
+                    })
+
                     remaining -= used
                     i += 1
-
-                out_qty = trx["quantity"]
-                out_price = out_total // out_qty if out_qty else 0
-
-                balance_qty -= out_qty
-                balance -= out_total
-
-                # split entry berdasarkan FIFO
-                entry = {
-                    "date": trx["date"].strftime("%d-%m-%Y"),
-                    "description": trx["description"],
-                    "code": trx["code"],
-                    "in_qty": 0,
-                    "in_price": 0,
-                    "in_total": 0,
-                    "out_qty": 0,
-                    "out_price": 0,
-                    "out_total": 0,
-                    "stock_qty": stock_qty.copy(),
-                    "stock_price": stock_price.copy(),
-                    "stock_total": stock_total.copy(),
-                    "balance_qty": balance_qty,
-                    "balance": balance,
-                }
-
-                split_entries = split_transaction_by_fifo(entry, stock_used)
-                report.extend(split_entries)
 
         result = {
             "result": {
